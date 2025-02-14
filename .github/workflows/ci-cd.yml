@@ -1,4 +1,4 @@
-# CI/CD - Publish Package to GitHub Packages (Final Fix)
+name: CI/CD - Publish Package to GitHub Packages
 
 on:
   pull_request:
@@ -23,11 +23,16 @@ jobs:
           curl -sSL https://install.python-poetry.org | python3 -
           poetry --version
 
-      - name: Clean Poetry Configuration
+      - name: Clean Poetry Configuration (Remove old settings)
         run: |
           poetry config --unset repositories.github || true
+          poetry config --unset repositories.pypi || true
           poetry config --unset http-basic.github || true
-          rm -f ~/.config/pypoetry/auth.toml ~/.config/pypoetry/config.toml
+          rm ~/.config/pypoetry/auth.toml || true
+          rm ~/.config/pypoetry/config.toml || true
+
+      - name: Update CA Certificates
+        run: sudo update-ca-certificates
 
       - name: Install Dependencies
         run: poetry install --with dev
@@ -35,24 +40,25 @@ jobs:
       - name: Build Package
         run: poetry build
 
-      - name: Publish PR Package (Dev Version)
+      - name: Publish package for PRs (dev version) using Twine
         if: github.event_name == 'pull_request'
         run: |
-          DEV_VERSION="$(poetry version --short).dev${{ github.event.number }}+${{ github.run_number }}"
-          echo "Setting PR version: $DEV_VERSION"
+          CURRENT_VERSION=$(poetry version --short || echo "0.1.0")
+          DEV_VERSION="${CURRENT_VERSION}.dev${{ github.event.number }}+${{ github.run_number }}"
+          echo "Setting dynamic PR version: ${DEV_VERSION}"
           poetry version "$DEV_VERSION"
+          # Rebuild to update version info in the package
           poetry build
-          pip install --upgrade pip twine
-          twine upload --repository-url "https://upload.pypi.pkg.github.com/${{ github.repository_owner }}" \
-            -u __token__ -p "${{ secrets.GH_TOKEN }}" dist/*
+          pip install twine
+          twine upload --repository-url "https://upload.pypi.pkg.github.com/${{ github.repository_owner }}/" -u __token__ -p "${{ secrets.GH_TOKEN }}" dist/*
 
-      - name: Publish Stable Package (Merge to Main)
+      - name: Publish package on merge (stable version) using Twine
         if: github.event_name == 'push'
         run: |
           STABLE_VERSION=$(poetry version --short)
-          echo "Publishing stable version: $STABLE_VERSION"
+          echo "Releasing stable version: $STABLE_VERSION"
           poetry version "$STABLE_VERSION"
+          # Rebuild to update version info if needed
           poetry build
-          pip install --upgrade pip twine
-          twine upload --repository-url "https://upload.pypi.pkg.github.com/${{ github.repository_owner }}" \
-            -u __token__ -p "${{ secrets.GH_TOKEN }}" dist/*
+          pip install twine
+          twine upload --repository-url "https://upload.pypi.pkg.github.com/${{ github.repository_owner }}/" -u __token__ -p "${{ secrets.GH_TOKEN }}" dist/*
