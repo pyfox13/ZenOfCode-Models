@@ -16,31 +16,29 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.x'
+          python-version: '3.10'
 
       - name: Install Poetry
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
           poetry --version
 
-      - name: Install dependencies
-        run: poetry install --with dev
-
-      - name: Clean previous repository configuration
+      - name: Clean Poetry Configuration (Remove Old npm URL)
         run: |
-          # Remove any old configuration that might be pointing to npm.pkg.github.com
           poetry config --unset repositories.github || true
+          poetry config --unset repositories.pypi || true
+          poetry config --unset http-basic.github || true
+          rm ~/.config/pypoetry/auth.toml || true
+          rm ~/.config/pypoetry/config.toml || true
 
-      - name: Configure Poetry for GitHub Packages
+      - name: Configure Poetry for GitHub Packages (Python Endpoint)
         run: |
-          # Configure with the correct GitHub Packages endpoint for Python
           poetry config repositories.github "https://upload.pypi.pkg.github.com/${{ github.repository_owner }}"
           poetry config http-basic.github __token__ "${{ secrets.GH_TOKEN }}"
-          # (Optional) Verify the configuration
           poetry config --list
 
-      - name: Test connectivity
-        run: curl -k -I "https://upload.pypi.pkg.github.com/${{ github.repository_owner }}"
+      - name: Install dependencies
+        run: poetry install --with dev
 
       - name: Publish package for PRs (dev version)
         if: github.event_name == 'pull_request'
@@ -58,14 +56,3 @@ jobs:
           echo "Releasing stable version: $STABLE_VERSION"
           poetry version "$STABLE_VERSION"
           poetry publish --build --repository github -vvv
-
-      - name: Create GitHub Release
-        if: github.event_name == 'push'
-        run: |
-          TAG_NAME="v$(poetry version --short)"
-          echo "Creating GitHub Release: $TAG_NAME"
-          curl -X POST \
-            -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            -d "{\"tag_name\": \"${TAG_NAME}\", \"target_commitish\": \"main\", \"name\": \"Release ${TAG_NAME}\", \"body\": \"Release for version ${TAG_NAME}\", \"draft\": false, \"prerelease\": false}" \
-            "https://api.github.com/repos/${{ github.repository }}/releases"
