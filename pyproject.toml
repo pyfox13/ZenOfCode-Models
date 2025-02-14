@@ -18,8 +18,6 @@ pytest = "*"             # consider specifying a version range, e.g., "^7.0.0"
 pre-commit = "^2.20.0"
 mypy = "^0.971"
 
-[tool.poetry.repositories]
-github = { url = "https://upload.pypi.pkg.github.com/pyfox" }
 
 [tool.isort]
 profile = "black"
