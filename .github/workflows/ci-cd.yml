@@ -23,7 +23,7 @@ jobs:
           curl -sSL https://install.python-poetry.org | python3 -
           poetry --version
 
-      - name: Clean Poetry Configuration (Remove Old npm URL)
+      - name: Clean Poetry Configuration (Remove Old Config)
         run: |
           poetry config --unset repositories.github || true
           poetry config --unset repositories.pypi || true
@@ -33,8 +33,11 @@ jobs:
 
       - name: Configure Poetry for GitHub Packages (Python Endpoint)
         run: |
+          # Set the repository URL to include your GitHub owner (using github.repository_owner)
           poetry config repositories.github "https://upload.pypi.pkg.github.com/${{ github.repository_owner }}"
+          # Configure HTTP Basic Auth with username __token__ and your token from secrets
           poetry config http-basic.github __token__ "${{ secrets.GH_TOKEN }}"
+          # Display the current Poetry configuration for debugging purposes
           poetry config --list
 
       - name: Install dependencies
