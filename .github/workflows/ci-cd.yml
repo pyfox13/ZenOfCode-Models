@@ -72,7 +72,7 @@ jobs:
           curl -X POST "https://api.buildkite.com/v2/packages/organizations/zen-of-code/registries/zenofcode-models/packages" \
                -H "Authorization: Bearer $TOKEN" \
                -F "file=@dist/zenofcode_models-${DEV_VERSION}.tar.gz" || {
-                 echo "❌ Upload failed"
+                 echo " Upload failed"
                  exit 1
                }
 
@@ -87,6 +87,6 @@ jobs:
           curl -X POST "https://api.buildkite.com/v2/packages/organizations/zen-of-code/registries/zenofcode-models/packages" \
                -H "Authorization: Bearer $TOKEN" \
                -F "file=@dist/zenofcode_models-${STABLE_VERSION}.tar.gz" || {
-                 echo "❌ Upload failed"
+                 echo " Upload failed"
                  exit 1
                }
