@@ -22,8 +22,8 @@ psycopg2-binary = "^2.9"
 
 [[tool.poetry.source]]
 name = "github"
-url = "https://npm.pkg.github.com/pyfox"
-priority = "supplemental"
+url = "https://upload.pypi.pkg.github.com/pyfox"
+
 
 [tool.isort]
 profile = "black"
