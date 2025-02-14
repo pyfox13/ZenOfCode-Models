@@ -21,9 +21,6 @@ build/
 dist/
 *.whl
 
-# Poetry lock file
-poetry.lock
-
 # Logs and databases
 *.log
 *.sqlite3

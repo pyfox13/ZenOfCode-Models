@@ -1,25 +1,23 @@
-# `pyproject.toml` for ZenOfCode Models (CI/CD Only)
+# pyproject.toml for ZenOfCode Models (CI/CD Only)
 
 [tool.poetry]
 name = "zenofcode-models"
 version = "0.1.0"
 description = "Shared database models for ZenOfCode"
-authors = ["pyfox <pythonawspractice@gmail.com>"]
+authors = ["Zen Of Code Dev"]
 readme = "README.md"
-packages = [{include = "models"}]
+packages = [{ include = "models" }]
 
 [tool.poetry.dependencies]
 python = ">=3.10"
+sqlalchemy = "*"         # consider specifying a version range for better reproducibility
+psycopg2-binary = "*"     # consider specifying a version range for better reproducibility
 
-[group.dev.dependencies]
-pytest = "*"
-pre-commit = "*"
-mypy = "*"
+[tool.poetry.group.dev.dependencies]
+pytest = "*"             # consider specifying a version range, e.g., "^7.0.0"
+pre-commit = "^2.20.0"
+mypy = "^0.971"
 
-[[tool.poetry.source]]
-name = "github"
-url = "https://npm.pkg.github.com/pyfox"
-priority = "supplemental"
 
 [tool.isort]
 profile = "black"
