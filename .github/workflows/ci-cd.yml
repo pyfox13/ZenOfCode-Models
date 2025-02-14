@@ -3,74 +3,65 @@ name: CI/CD - Publish Package
 on:
   pull_request:
     branches:
-      - main  # Trigger on PR creation or updates targeting main
+      - main
   push:
     branches:
-      - main  # Trigger on push to main (for merge events)
+      - main
 
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout the repository code
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      # Set up Python (adjust version as needed)
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: '3.x'
 
-      # Install Poetry using the official installer
       - name: Install Poetry
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
-          poetry --version  # Verify Poetry is installed
+          poetry --version
 
-      # Install dependencies, including dev dependencies
       - name: Install dependencies
         run: |
           poetry install --with dev
 
-      # Run tests to ensure the code is valid
       - name: Run tests
         run: |
           poetry run pytest --maxfail=1 --disable-warnings -q
 
-      # Generate and publish dynamic version for PR
+      - name: Configure GitHub Repository for Poetry
+        run: |
+          poetry config repositories.github "https://upload.pypi.org/legacy/"
+          poetry config pypi-token.github "${{ secrets.GH_TOKEN }}"
+
       - name: Generate and publish dynamic version for PR
         if: success()
         run: |
           VERSION=$(poetry version --short || echo "0.1.0")
           echo "Current base version: $VERSION"
-
           NEW_VERSION="${VERSION}.dev${{ github.event.pull_request.number }}+${{ github.run_number }}"
           echo "Setting dynamic PR version: ${NEW_VERSION}"
-
           poetry version "$NEW_VERSION"
+          poetry publish --build --repository github
 
-          poetry config pypi-token.pypi "${{ secrets.GH_TOKEN }}"
-          poetry publish --build --no-interaction --repository github
-
-      # Handle PR merge - Publish stable version
       - name: Publish stable version on merge
         if: github.event.pull_request.merged == true && success()
         run: |
           STABLE_VERSION=$(poetry version --short)
           echo "Releasing stable version: $STABLE_VERSION"
-
           poetry version "$STABLE_VERSION"
-          poetry publish --build --no-interaction --repository github
+          poetry publish --build --repository github
 
-      # Create a GitHub Release with the stable version
       - name: Create GitHub Release
         if: github.event.pull_request.merged == true && success()
         run: |
           TAG_NAME="v$(poetry version --short)"
           echo "Creating GitHub Release: $TAG_NAME"
-
           curl -X POST \
             -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
