@@ -23,20 +23,20 @@ jobs:
         with:
           python-version: '3.x'
 
-      # Install Poetry using the official script
+      # Install Poetry
       - name: Install Poetry
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
 
-      # Install dependencies
+      # Install both regular and development dependencies
       - name: Install dependencies
         run: |
-          poetry install
+          poetry install --dev  # Ensure both main and dev dependencies are installed
 
       # Run tests to ensure the code is valid
       - name: Run tests
         run: |
-          poetry run pytest --maxfail=1 --disable-warnings -q
+          poetry run pytest --maxfail=1 --disable-warnings -q  # Use poetry run to ensure pytest is in the right environment
 
       # If tests pass, generate the version and publish
       - name: Generate and publish temporary version for PR
