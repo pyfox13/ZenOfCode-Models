@@ -28,32 +28,36 @@ jobs:
 
       - name: Configure Poetry for GitHub Packages
         run: |
-          poetry config repositories.github "https://upload.pypi.pkg.github.com/${{ github.repository_owner }}"
+          # Configure GitHub Packages endpoint (using your repo owner as needed)
+          poetry config repositories.github "https://upload.pypi.github.com/${{ github.repository_owner }}"
           poetry config http-basic.github __token__ "${{ secrets.GH_TOKEN }}"
 
-      # Optional: Test connectivity (bypassing SSL verification for debugging)
       - name: Test connectivity
-        run: curl -k -I "https://upload.pypi.pkg.github.com/${{ github.repository_owner }}"
+        run: curl -k -I "https://upload.pypi.github.com/${{ github.repository_owner }}"
 
-      - name: Publish package for PRs
+      - name: Publish package for PRs (dev version)
         if: github.event_name == 'pull_request'
         run: |
-          VERSION=$(poetry version --short || echo "0.1.0")
-          NEW_VERSION="${VERSION}.dev${{ github.event.pull_request.number }}+${{ github.run_number }}"
-          echo "Setting dynamic PR version: ${NEW_VERSION}"
-          poetry version "$NEW_VERSION"
+          # Get the current version from pyproject.toml (default to 0.1.0 if not found)
+          CURRENT_VERSION=$(poetry version --short || echo "0.1.0")
+          # Use the PR number (available as github.event.number) and the run number to form a dev version
+          DEV_VERSION="${CURRENT_VERSION}.dev${{ github.event.number }}+${{ github.run_number }}"
+          echo "Setting dynamic PR version: ${DEV_VERSION}"
+          poetry version "$DEV_VERSION"
           poetry publish --build --repository github -vvv
 
-      - name: Publish package on merge
-        if: github.event.pull_request.merged == true
+      - name: Publish package on merge (stable version)
+        if: github.event_name == 'push'
         run: |
+          # For a merge commit, use the version in pyproject.toml as the stable release
           STABLE_VERSION=$(poetry version --short)
           echo "Releasing stable version: $STABLE_VERSION"
+          # Ensure we are using the stable version (in case a dev version was previously set)
           poetry version "$STABLE_VERSION"
           poetry publish --build --repository github -vvv
 
       - name: Create GitHub Release
-        if: github.event.pull_request.merged == true
+        if: github.event_name == 'push'
         run: |
           TAG_NAME="v$(poetry version --short)"
           echo "Creating GitHub Release: $TAG_NAME"
