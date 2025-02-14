@@ -31,7 +31,7 @@ jobs:
       # Install both regular and development dependencies
       - name: Install dependencies
         run: |
-          poetry install --dev  # Ensure both main and dev dependencies are installed
+            poetry install --with dev  # Ensure both main and dev dependencies are installed
 
       # Run tests to ensure the code is valid
       - name: Run tests
