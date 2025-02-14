@@ -1,4 +1,3 @@
-# ci-cd.yml — Publish to Buildkite Registry
 
 name: CI/CD - Publish to Buildkite Registry
 
@@ -12,7 +11,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      # 🟡 Step 1: Checkout the Repository
+      # 🟡 Step 1: Checkout Repository
       - name: Check out repository
         uses: actions/checkout@v2
 
@@ -56,7 +55,7 @@ jobs:
       - name: Publish Dev Version (for PRs)
         if: github.event_name == 'pull_request'
         env:
-          BUILDKITE_TOKEN: ${{ secrets.BUILDKITE_TOKEN }}
+          TOKEN: ${{ secrets.BUILDKITE_TOKEN }}
         run: |
           CURRENT_VERSION=$(poetry version --short || echo "0.1.0")
           DEV_VERSION="${CURRENT_VERSION}.dev${{ github.event.number }}+${{ github.run_number }}"
@@ -64,18 +63,18 @@ jobs:
           poetry version "$DEV_VERSION"
           poetry build
           curl -X POST "https://api.buildkite.com/v2/packages/organizations/zen-of-code/registries/zenofcode-models/packages" \
-               -H "Authorization: Bearer ${BUILDKITE_TOKEN}" \
+               -H "Authorization: Bearer $TOKEN" \
                -F "file=@dist/zenofcode_models-${DEV_VERSION}.tar.gz"
 
-      # 🟢 Step 8: Publish Stable Version (on Merge to Main)
+      # 🟢 Step 8: Publish Stable Version on Merge
       - name: Publish Stable Version (on Merge)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
-          BUILDKITE_TOKEN: ${{ secrets.BUILDKITE_TOKEN }}
+          TOKEN: ${{ secrets.BUILDKITE_TOKEN }}
         run: |
           STABLE_VERSION=$(poetry version --short)
           echo "Releasing stable version: $STABLE_VERSION"
           poetry build
           curl -X POST "https://api.buildkite.com/v2/packages/organizations/zen-of-code/registries/zenofcode-models/packages" \
-               -H "Authorization: Bearer ${BUILDKITE_TOKEN}" \
+               -H "Authorization: Bearer $TOKEN" \
                -F "file=@dist/zenofcode_models-${STABLE_VERSION}.tar.gz"
