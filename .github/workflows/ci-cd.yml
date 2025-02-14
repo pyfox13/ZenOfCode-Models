@@ -47,10 +47,10 @@ jobs:
           DEV_VERSION="${CURRENT_VERSION}.dev${{ github.event.number }}+${{ github.run_number }}"
           echo "Setting dynamic PR version: ${DEV_VERSION}"
           poetry version "$DEV_VERSION"
-          # Rebuild to update version info in the package
+          # Rebuild to update version info
           poetry build
           pip install twine
-          twine upload --repository-url "https://upload.pypi.pkg.github.com/${{ github.repository_owner }}/" -u __token__ -p "${{ secrets.GH_TOKEN }}" dist/*
+          twine upload --repository-url "https://pypi.pkg.github.com/${{ github.repository_owner }}/" -u __token__ -p "${{ secrets.GH_TOKEN }}" dist/*
 
       - name: Publish package on merge (stable version) using Twine
         if: github.event_name == 'push'
@@ -61,4 +61,4 @@ jobs:
           # Rebuild to update version info if needed
           poetry build
           pip install twine
-          twine upload --repository-url "https://upload.pypi.pkg.github.com/${{ github.repository_owner }}/" -u __token__ -p "${{ secrets.GH_TOKEN }}" dist/*
+          twine upload --repository-url "https://pypi.pkg.github.com/${{ github.repository_owner }}/" -u __token__ -p "${{ secrets.GH_TOKEN }}" dist/*
