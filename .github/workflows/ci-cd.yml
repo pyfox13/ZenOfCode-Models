@@ -28,7 +28,8 @@ jobs:
 
       - name: Configure Poetry for GitHub Packages
         run: |
-          # Configure GitHub Packages endpoint using the correct host
+          # Use the correct GitHub Packages endpoint for Python:
+          # https://upload.pypi.pkg.github.com/<OWNER>
           poetry config repositories.github "https://upload.pypi.pkg.github.com/${{ github.repository_owner }}"
           poetry config http-basic.github __token__ "${{ secrets.GH_TOKEN }}"
 
@@ -38,9 +39,9 @@ jobs:
       - name: Publish package for PRs (dev version)
         if: github.event_name == 'pull_request'
         run: |
-          # Get the current version from pyproject.toml (default to 0.1.0 if not found)
+          # Retrieve the current version (default to 0.1.0 if not found)
           CURRENT_VERSION=$(poetry version --short || echo "0.1.0")
-          # Use the PR number and run number to form a dev version
+          # Append a dev suffix using the PR number and run number
           DEV_VERSION="${CURRENT_VERSION}.dev${{ github.event.number }}+${{ github.run_number }}"
           echo "Setting dynamic PR version: ${DEV_VERSION}"
           poetry version "$DEV_VERSION"
@@ -49,10 +50,9 @@ jobs:
       - name: Publish package on merge (stable version)
         if: github.event_name == 'push'
         run: |
-          # Use the version in pyproject.toml as the stable release
+          # Use the version in pyproject.toml as the stable release version
           STABLE_VERSION=$(poetry version --short)
           echo "Releasing stable version: $STABLE_VERSION"
-          # Ensure we are using the stable version
           poetry version "$STABLE_VERSION"
           poetry publish --build --repository github -vvv
 
