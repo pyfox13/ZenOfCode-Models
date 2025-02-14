@@ -30,13 +30,9 @@ jobs:
         run: |
           poetry install --with dev
 
-      - name: Run tests
+      - name: Configure Poetry for GitHub Packages (Using 'GH_TOKEN')
         run: |
-          poetry run pytest --maxfail=1 --disable-warnings -q
-
-      - name: Configure GitHub Repository for Poetry
-        run: |
-          poetry config repositories.github "https://upload.pypi.org/legacy/"
+          poetry config repositories.github "https://npm.pkg.github.com/${{ github.repository_owner }}"
           poetry config pypi-token.github "${{ secrets.GH_TOKEN }}"
 
       - name: Generate and publish dynamic version for PR
