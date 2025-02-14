@@ -32,9 +32,10 @@ jobs:
 
       - name: Configure Poetry for GitHub Packages (Using 'GH_TOKEN')
         run: |
-          # Configure to publish to GitHub Packages for Python
+          # Set the repository URL for GitHub Packages for Python
           poetry config repositories.github "https://upload.pypi.pkg.github.com/${{ github.repository_owner }}"
-          poetry config pypi-token.github "${{ secrets.GH_TOKEN }}"
+          # Configure HTTP basic auth with username __token__ and your GH token as the password
+          poetry config http-basic.github __token__ "${{ secrets.GH_TOKEN }}"
 
       - name: Generate and publish dynamic version for PR
         if: github.event_name == 'pull_request'
