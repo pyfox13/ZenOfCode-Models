@@ -3,72 +3,75 @@ name: CI/CD - Publish Package
 on:
   pull_request:
     branches:
-      - main  # Trigger on PR creation or updates
+      - main  # Trigger on PR creation or updates targeting main
   push:
     branches:
-      - main  # Trigger on push to the main branch (for merging PR)
+      - main  # Trigger on push to main (for merge events)
 
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout the repository
+      # Checkout the repository code
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      # Set up Python and Poetry
+      # Set up Python (adjust version as needed)
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: '3.x'
 
-      # Install Poetry
+      # Install Poetry using the official installer
       - name: Install Poetry
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
+          poetry --version  # Verify Poetry is installed
 
-      # Install both regular and development dependencies
+      # Install dependencies, including dev dependencies
+      # Note: We commit the poetry.lock file so that CI uses locked versions
       - name: Install dependencies
         run: |
-            poetry install --with dev  # Ensure both main and dev dependencies are installed
+          poetry install --with dev
 
       # Run tests to ensure the code is valid
       - name: Run tests
         run: |
-          poetry run pytest --maxfail=1 --disable-warnings -q  # Use poetry run to ensure pytest is in the right environment
+          poetry run pytest --maxfail=1 --disable-warnings -q
 
-      # If tests pass, generate the version and publish
+      # If tests pass, generate a temporary version and publish for PRs
       - name: Generate and publish temporary version for PR
-        if: success()  # This ensures version generation only happens if tests pass
+        if: success()  # Only execute if tests pass
         run: |
+          # Get the current version from Poetry
           VERSION=$(poetry version | grep 'version' | sed 's/.*"\(.*\)"/\1/')
-          NEW_VERSION="${VERSION}-pr${GITHUB_REF##*/}"  # Example: "0.1.0-pr123"
+          # Append PR reference to the version (example: 0.1.0-pr123)
+          NEW_VERSION="${VERSION}-pr${GITHUB_REF##*/}"
+          echo "Setting temporary version to ${NEW_VERSION}"
           poetry version $NEW_VERSION
 
+          # Configure the token and publish to GitHub Packages
           poetry config pypi-token.pypi ${{ secrets.GH_TOKEN }}
           poetry publish --build --no-interaction --repository github
 
-      # On PR merge, delete temporary version and publish stable version
+      # On PR merge, delete the temporary version and publish the stable version
       - name: Handle PR merge - Delete temp version and publish stable version
         if: github.event.pull_request.merged == true && success()
         run: |
-          # Delete the temporary version from GitHub Packages
           echo "Deleting temporary version from GitHub Packages"
-          TEMP_VERSION="${VERSION}-pr${GITHUB_REF##*/}"  # Example: "0.1.0-pr123"
-          PACKAGE_NAME="zenofcode-models"  # Replace with your package name
-          GITHUB_TOKEN=${{ secrets.GH_TOKEN }}
-
+          TEMP_VERSION="${VERSION}-pr${GITHUB_REF##*/}"
+          PACKAGE_NAME="zenofcode-models"  # Replace with your package name if different
+          # Delete temporary package version via GitHub API
           curl -X DELETE \
-            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
             "https://api.github.com/packages/container/$PACKAGE_NAME/versions/$TEMP_VERSION"
 
-          # Generate stable version (e.g., 0.1.0)
           echo "Releasing stable version"
+          # Reset version to stable (e.g., 0.1.0)
           VERSION=$(poetry version | grep 'version' | sed 's/.*"\(.*\)"/\1/')
           poetry version $VERSION
-
           poetry publish --build --no-interaction --repository github
 
       # Create a GitHub Release with the stable version
@@ -77,11 +80,9 @@ jobs:
         run: |
           echo "Creating GitHub Release"
           TAG_NAME="v${VERSION}"  # Use the stable version as the tag name
-          GITHUB_TOKEN=${{ secrets.GH_TOKEN }}
-
           # Create release using GitHub API
           curl -X POST \
-            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
             -d '{"tag_name": "'$TAG_NAME'", "target_commitish": "main", "name": "Release '$TAG_NAME'", "body": "Release for version '$TAG_NAME'", "draft": false, "prerelease": false}' \
             "https://api.github.com/repos/${{ github.repository }}/releases"
