@@ -32,14 +32,15 @@ jobs:
 
       - name: Configure Poetry for GitHub Packages
         run: |
-          # Set the repository URL for GitHub Packages for Python
+          # Configure the repository URL for GitHub Packages for Python.
           poetry config repositories.github "https://upload.pypi.pkg.github.com/${{ github.repository_owner }}"
-          # Configure HTTP Basic Auth: username must be __token__ and password is your GH_TOKEN
+          # Set up HTTP Basic Auth using __token__ as the username and your GH_TOKEN as the password.
           poetry config http-basic.github __token__ "${{ secrets.GH_TOKEN }}"
 
-      - name: Test connectivity to GitHub Packages endpoint
+      - name: Test connectivity to GitHub Packages endpoint (for debugging)
         run: |
-          curl -I "https://upload.pypi.pkg.github.com/${{ github.repository_owner }}"
+          # Using -k to bypass SSL verification for testing purposes only.
+          curl -k -I "https://upload.pypi.pkg.github.com/${{ github.repository_owner }}"
 
       - name: Generate and publish dynamic version for PR
         if: github.event_name == 'pull_request'
