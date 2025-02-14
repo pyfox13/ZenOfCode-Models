@@ -4,17 +4,21 @@
 name = "zenofcode-models"
 version = "0.1.0"
 description = "Shared database models for ZenOfCode"
-authors = ["pyfox <pythonawspractice@gmail.com>"]
+authors = ["Zen Of Code Dev"]
 readme = "README.md"
 packages = [{include = "models"}]
 
 [tool.poetry.dependencies]
 python = ">=3.10"
+sqlalchemy = "*"
+psycopg2 = "*"
 
 [group.dev.dependencies]
 pytest = "*"
 pre-commit = "*"
 mypy = "*"
+psycopg2-binary = "^2.9"
+
 
 [[tool.poetry.source]]
 name = "github"
