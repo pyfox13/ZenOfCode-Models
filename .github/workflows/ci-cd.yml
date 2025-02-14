@@ -26,12 +26,18 @@ jobs:
       - name: Install dependencies
         run: poetry install --with dev
 
+      - name: Clean previous repository configuration
+        run: |
+          # Remove any old configuration that might be pointing to npm.pkg.github.com
+          poetry config --unset repositories.github || true
+
       - name: Configure Poetry for GitHub Packages
         run: |
-          # Use the correct GitHub Packages endpoint for Python:
-          # https://upload.pypi.pkg.github.com/<OWNER>
+          # Configure with the correct GitHub Packages endpoint for Python
           poetry config repositories.github "https://upload.pypi.pkg.github.com/${{ github.repository_owner }}"
           poetry config http-basic.github __token__ "${{ secrets.GH_TOKEN }}"
+          # (Optional) Verify the configuration
+          poetry config --list
 
       - name: Test connectivity
         run: curl -k -I "https://upload.pypi.pkg.github.com/${{ github.repository_owner }}"
@@ -39,9 +45,7 @@ jobs:
       - name: Publish package for PRs (dev version)
         if: github.event_name == 'pull_request'
         run: |
-          # Retrieve the current version (default to 0.1.0 if not found)
           CURRENT_VERSION=$(poetry version --short || echo "0.1.0")
-          # Append a dev suffix using the PR number and run number
           DEV_VERSION="${CURRENT_VERSION}.dev${{ github.event.number }}+${{ github.run_number }}"
           echo "Setting dynamic PR version: ${DEV_VERSION}"
           poetry version "$DEV_VERSION"
@@ -50,7 +54,6 @@ jobs:
       - name: Publish package on merge (stable version)
         if: github.event_name == 'push'
         run: |
-          # Use the version in pyproject.toml as the stable release version
           STABLE_VERSION=$(poetry version --short)
           echo "Releasing stable version: $STABLE_VERSION"
           poetry version "$STABLE_VERSION"
