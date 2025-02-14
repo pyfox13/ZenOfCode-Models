@@ -1,5 +1,4 @@
-# Full Buildkite CI/CD Workflow Guide
-name: CI/CD - Publish to Buildkite Registry
+name: CI/CD - ZenOfCode Models
 
 on:
   pull_request:
@@ -11,11 +10,9 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      # Step 1: Checkout Repository
       - name: Check out repository
         uses: actions/checkout@v2
 
-      # Step 2: Set Up Python and Poetry
       - name: Set up Python 3.10
         uses: actions/setup-python@v2
         with:
@@ -27,23 +24,18 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
           poetry --version
 
-      # Step 3: Configure Poetry for Buildkite Registry
       - name: Configure Poetry for Buildkite Registry
         run: |
           poetry config repositories.buildkite https://api.buildkite.com/v2/packages/organizations/zen-of-code/registries/zenofcode-models/packages
           poetry config http-basic.buildkite "__token__" "${{ secrets.BUILDKITE_TOKEN }}"
 
-      # Step 4: Verify BUILDKITE_TOKEN
       - name: Verify BUILDKITE_TOKEN
         run: |
           if [ -z "${{ secrets.BUILDKITE_TOKEN }}" ]; then
             echo "❌ BUILDKITE_TOKEN is not set"
             exit 1
-          else
-            echo "✅ BUILDKITE_TOKEN is set"
           fi
 
-      # Step 5: Cache Dependencies
       - uses: actions/cache@v3
         with:
           path: ~/.cache/pypoetry
@@ -51,42 +43,39 @@ jobs:
           restore-keys: |
             poetry-${{ runner.os }}-
 
-      # Step 6: Install Dependencies
       - name: Install Dependencies
         run: poetry install --with dev
 
-      # Step 7: Build Package
       - name: Build Package
         run: poetry build
 
-      # Step 8: Publish Dev Version (for PRs)
       - name: Publish Dev Version (for PRs)
         if: github.event_name == 'pull_request'
-        env:
-          TOKEN: ${{ secrets.BUILDKITE_TOKEN }}
         run: |
-          CURRENT_VERSION=$(poetry version --short || echo "0.1.0")
-          DEV_VERSION="${CURRENT_VERSION}.dev${{ github.event.number }}+${{ github.run_number }}"
+          CURRENT_VERSION=$(poetry version --short)
+          DEV_VERSION="${CURRENT_VERSION}.dev${{ github.event.number }}-${{ github.run_number }}"
           poetry version "$DEV_VERSION"
           poetry build
           curl -X POST "https://api.buildkite.com/v2/packages/organizations/zen-of-code/registries/zenofcode-models/packages" \
-               -H "Authorization: Bearer $TOKEN" \
-               -F "file=@dist/zenofcode_models-${DEV_VERSION}.tar.gz" || {
-                 echo " Upload failed"
-                 exit 1
-               }
+               -H "Authorization: Bearer ${{ secrets.BUILDKITE_TOKEN }}" \
+               -F "file=@dist/zenofcode_models-${DEV_VERSION}.tar.gz"
 
-      # Step 9: Publish Stable Version (on Merge)
       - name: Publish Stable Version (on Merge)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        env:
-          TOKEN: ${{ secrets.BUILDKITE_TOKEN }}
         run: |
           STABLE_VERSION=$(poetry version --short)
           poetry build
           curl -X POST "https://api.buildkite.com/v2/packages/organizations/zen-of-code/registries/zenofcode-models/packages" \
-               -H "Authorization: Bearer $TOKEN" \
-               -F "file=@dist/zenofcode_models-${STABLE_VERSION}.tar.gz" || {
-                 echo " Upload failed"
+               -H "Authorization: Bearer ${{ secrets.BUILDKITE_TOKEN }}" \
+               -F "file=@dist/zenofcode_models-${STABLE_VERSION}.tar.gz"
+
+      # 🟢 Step 10: Delete Temporary Dev Versions (Auto-Cleanup on Merge)
+      - name: Delete Temporary Dev Versions
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          echo "Deleting temporary dev versions from Buildkite Registry..."
+          curl -X DELETE "https://api.buildkite.com/v2/packages/organizations/zen-of-code/registries/zenofcode-models/packages?filter=version:^0.1.0.dev" \
+               -H "Authorization: Bearer ${{ secrets.BUILDKITE_TOKEN }}" || {
+                 echo "❌ Failed to delete temporary versions"
                  exit 1
                }
