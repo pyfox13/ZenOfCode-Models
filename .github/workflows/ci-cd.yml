@@ -2,16 +2,13 @@ name: CI/CD - Publish Package to GitHub Packages
 
 on:
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
   push:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -27,32 +24,27 @@ jobs:
           poetry --version
 
       - name: Install dependencies
-        run: |
-          poetry install --with dev
+        run: poetry install --with dev
 
       - name: Configure Poetry for GitHub Packages
         run: |
-          # Configure the repository URL for GitHub Packages for Python.
           poetry config repositories.github "https://upload.pypi.pkg.github.com/${{ github.repository_owner }}"
-          # Set up HTTP Basic Auth using __token__ as the username and your GH_TOKEN as the password.
           poetry config http-basic.github __token__ "${{ secrets.GH_TOKEN }}"
 
-      - name: Test connectivity to GitHub Packages endpoint (for debugging)
-        run: |
-          # Using -k to bypass SSL verification for testing purposes only.
-          curl -k -I "https://upload.pypi.pkg.github.com/${{ github.repository_owner }}"
+      # Optional: Test connectivity (bypassing SSL verification for debugging)
+      - name: Test connectivity
+        run: curl -k -I "https://upload.pypi.pkg.github.com/${{ github.repository_owner }}"
 
-      - name: Generate and publish dynamic version for PR
+      - name: Publish package for PRs
         if: github.event_name == 'pull_request'
         run: |
           VERSION=$(poetry version --short || echo "0.1.0")
-          echo "Current base version: $VERSION"
           NEW_VERSION="${VERSION}.dev${{ github.event.pull_request.number }}+${{ github.run_number }}"
           echo "Setting dynamic PR version: ${NEW_VERSION}"
           poetry version "$NEW_VERSION"
           poetry publish --build --repository github -vvv
 
-      - name: Publish stable version on merge
+      - name: Publish package on merge
         if: github.event.pull_request.merged == true
         run: |
           STABLE_VERSION=$(poetry version --short)
@@ -68,5 +60,5 @@ jobs:
           curl -X POST \
             -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
-            -d '{"tag_name": "'$TAG_NAME'", "target_commitish": "main", "name": "Release '$TAG_NAME'", "body": "Release for version '$TAG_NAME'", "draft": false, "prerelease": false}' \
+            -d "{\"tag_name\": \"${TAG_NAME}\", \"target_commitish\": \"main\", \"name\": \"Release ${TAG_NAME}\", \"body\": \"Release for version ${TAG_NAME}\", \"draft\": false, \"prerelease\": false}" \
             "https://api.github.com/repos/${{ github.repository }}/releases"
