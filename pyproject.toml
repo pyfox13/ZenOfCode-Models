@@ -10,14 +10,16 @@ packages = [{ include = "models" }]
 
 [tool.poetry.dependencies]
 python = ">=3.10"
-sqlalchemy = "*"         # if you really want a wildcard here, but specifying a range is better
-psycopg2-binary = "*"     # same as above
+sqlalchemy = "*"         # consider specifying a version range for better reproducibility
+psycopg2-binary = "*"     # consider specifying a version range for better reproducibility
 
 [tool.poetry.group.dev.dependencies]
-pytest = "*"             # consider setting a version range here too, e.g., "^7.0.0"
-pre-commit = "^2.20.0"    # example version range; adjust as needed
-mypy = "^0.971"          # example version range
+pytest = "*"             # consider specifying a version range, e.g., "^7.0.0"
+pre-commit = "^2.20.0"
+mypy = "^0.971"
 
+[tool.poetry.repositories]
+github = { url = "https://upload.pypi.pkg.github.com/pyfox" }
 
 [tool.isort]
 profile = "black"
