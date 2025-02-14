@@ -39,42 +39,28 @@ jobs:
         run: |
           poetry run pytest --maxfail=1 --disable-warnings -q
 
-      # If tests pass, generate a temporary version and publish for PRs
-      - name: Generate and publish temporary version for PR
+      # Generate and publish dynamic version for PR
+      - name: Generate and publish dynamic version for PR
         if: success()
         run: |
-          # Get the current version or fallback
           VERSION=$(poetry version --short || echo "0.1.0")
-          echo "Detected Poetry version: $VERSION"
+          echo "Current base version: $VERSION"
 
-          # Set a temporary version for the PR (e.g., 0.1.0-pr123)
-          NEW_VERSION="${VERSION}-pr${{ github.event.pull_request.number || github.run_number }}"
-          echo "Setting temporary version: ${NEW_VERSION}"
+          NEW_VERSION="${VERSION}.dev${{ github.event.pull_request.number }}+${{ github.run_number }}"
+          echo "Setting dynamic PR version: ${NEW_VERSION}"
 
-          # Set version with Poetry
           poetry version "$NEW_VERSION"
 
-          # Configure token and publish to GitHub Packages
           poetry config pypi-token.pypi "${{ secrets.GH_TOKEN }}"
           poetry publish --build --no-interaction --repository github
 
-      # On PR merge, delete the temporary version and publish the stable version
-      - name: Handle PR merge - Delete temp version and publish stable version
+      # Handle PR merge - Publish stable version
+      - name: Publish stable version on merge
         if: github.event.pull_request.merged == true && success()
         run: |
-          echo "Deleting temporary version from GitHub Packages"
-          TEMP_VERSION="${VERSION}-pr${{ github.event.pull_request.number || github.run_number }}"
-          PACKAGE_NAME="zenofcode-models"
-
-          # Delete temporary package version via GitHub API
-          curl -X DELETE \
-            -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            "https://api.github.com/packages/container/$PACKAGE_NAME/versions/$TEMP_VERSION"
-
-          echo "Releasing stable version"
-          # Get current stable version and publish
           STABLE_VERSION=$(poetry version --short)
+          echo "Releasing stable version: $STABLE_VERSION"
+
           poetry version "$STABLE_VERSION"
           poetry publish --build --no-interaction --repository github
 
@@ -82,13 +68,11 @@ jobs:
       - name: Create GitHub Release
         if: github.event.pull_request.merged == true && success()
         run: |
-          echo "Creating GitHub Release"
           TAG_NAME="v$(poetry version --short)"
-          GITHUB_TOKEN="${{ secrets.GH_TOKEN }}"
+          echo "Creating GitHub Release: $TAG_NAME"
 
-          # Create release using GitHub API
           curl -X POST \
-            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
             -d '{"tag_name": "'$TAG_NAME'", "target_commitish": "main", "name": "Release '$TAG_NAME'", "body": "Release for version '$TAG_NAME'", "draft": false, "prerelease": false}' \
             "https://api.github.com/repos/${{ github.repository }}/releases"
