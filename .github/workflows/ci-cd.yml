@@ -32,11 +32,12 @@ jobs:
 
       - name: Configure Poetry for GitHub Packages (Using 'GH_TOKEN')
         run: |
-          poetry config repositories.github "https://npm.pkg.github.com/${{ github.repository_owner }}"
+          # Use the correct repository URL for Python packages
+          poetry config repositories.github "https://upload.pypi.org/legacy/"
           poetry config pypi-token.github "${{ secrets.GH_TOKEN }}"
 
       - name: Generate and publish dynamic version for PR
-        if: success()
+        if: github.event_name == 'pull_request'
         run: |
           VERSION=$(poetry version --short || echo "0.1.0")
           echo "Current base version: $VERSION"
@@ -46,7 +47,7 @@ jobs:
           poetry publish --build --repository github
 
       - name: Publish stable version on merge
-        if: github.event.pull_request.merged == true && success()
+        if: github.event.pull_request.merged == true
         run: |
           STABLE_VERSION=$(poetry version --short)
           echo "Releasing stable version: $STABLE_VERSION"
@@ -54,7 +55,7 @@ jobs:
           poetry publish --build --repository github
 
       - name: Create GitHub Release
-        if: github.event.pull_request.merged == true && success()
+        if: github.event.pull_request.merged == true
         run: |
           TAG_NAME="v$(poetry version --short)"
           echo "Creating GitHub Release: $TAG_NAME"
