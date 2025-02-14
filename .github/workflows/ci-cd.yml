@@ -1,4 +1,4 @@
-# CI/CD - Publish Package to GitHub Packages (Corrected URL)
+# CI/CD - Publish Package to GitHub Packages (Final Fix)
 
 on:
   pull_request:
@@ -43,7 +43,7 @@ jobs:
           poetry version "$DEV_VERSION"
           poetry build
           pip install --upgrade pip twine
-          twine upload --repository-url "https://pypi.pkg.github.com/${{ github.repository_owner }}" \
+          twine upload --repository-url "https://upload.pypi.pkg.github.com/${{ github.repository_owner }}" \
             -u __token__ -p "${{ secrets.GH_TOKEN }}" dist/*
 
       - name: Publish Stable Package (Merge to Main)
@@ -54,5 +54,5 @@ jobs:
           poetry version "$STABLE_VERSION"
           poetry build
           pip install --upgrade pip twine
-          twine upload --repository-url "https://pypi.pkg.github.com/${{ github.repository_owner }}" \
+          twine upload --repository-url "https://upload.pypi.pkg.github.com/${{ github.repository_owner }}" \
             -u __token__ -p "${{ secrets.GH_TOKEN }}" dist/*
