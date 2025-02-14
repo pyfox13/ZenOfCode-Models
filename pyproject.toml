@@ -13,7 +13,7 @@ python = ">=3.10"
 sqlalchemy = "*"
 psycopg2 = "*"
 
-[group.dev.dependencies]
+[tool.poetry.group.dev.dependencies]
 pytest = "*"
 pre-commit = "*"
 mypy = "*"
