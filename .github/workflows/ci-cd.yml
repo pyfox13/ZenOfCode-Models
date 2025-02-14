@@ -1,19 +1,19 @@
-name: CI/CD - Publish Package to GitHub Packages
+name: CI/CD - Publish to Buildkite Registry
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [main]
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
-  build-and-publish:
+  publish:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Check out repository
         uses: actions/checkout@v2
 
-      - name: Set up Python
+      - name: Set up Python 3.10
         uses: actions/setup-python@v2
         with:
           python-version: '3.10'
@@ -21,18 +21,13 @@ jobs:
       - name: Install Poetry
         run: |
           curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
           poetry --version
 
-      - name: Clean Poetry Configuration (Remove old settings)
+      - name: Configure Poetry for Buildkite Registry
         run: |
-          poetry config --unset repositories.github || true
-          poetry config --unset repositories.pypi || true
-          poetry config --unset http-basic.github || true
-          rm ~/.config/pypoetry/auth.toml || true
-          rm ~/.config/pypoetry/config.toml || true
-
-      - name: Update CA Certificates
-        run: sudo update-ca-certificates
+          poetry config repositories.buildkite https://api.buildkite.com/v2/packages/organizations/zen-of-code/registries/zenofcode-models/packages
+          poetry config http-basic.buildkite "__token__" "${{ secrets.BUILDKITE_TOKEN }}"
 
       - name: Install Dependencies
         run: poetry install --with dev
@@ -40,30 +35,24 @@ jobs:
       - name: Build Package
         run: poetry build
 
-      - name: Publish package for PRs (dev version) using Twine
+      - name: Publish Dev Version (for PRs)
         if: github.event_name == 'pull_request'
         run: |
           CURRENT_VERSION=$(poetry version --short || echo "0.1.0")
           DEV_VERSION="${CURRENT_VERSION}.dev${{ github.event.number }}+${{ github.run_number }}"
           echo "Setting dynamic PR version: ${DEV_VERSION}"
           poetry version "$DEV_VERSION"
-          # Rebuild package to update version info
           poetry build
-          pip install twine
-          # Use the correct upload endpoint:
-          twine upload --repository-url "https://upload.pypi.pkg.github.com/pyfox13" -u __token__ -p "${{ secrets.GH_TOKEN }}" dist/*
-          # Uncomment the following line to disable SSL verification (not recommended for production)
-          # TWINE_DISABLE_SSL_VERIFICATION=1 twine upload --repository-url "https://upload.pypi.pkg.github.com/pyfox13" -u __token__ -p "${{ secrets.GH_TOKEN }}" dist/*
+          curl -X POST https://api.buildkite.com/v2/packages/organizations/zen-of-code/registries/zenofcode-models/packages \
+               -H "Authorization: Bearer ${{ secrets.BUILDKITE_TOKEN }}" \
+               -F "file=@dist/zenofcode_models-${DEV_VERSION}.tar.gz"
 
-      - name: Publish package on merge (stable version) using Twine
-        if: github.event_name == 'push'
+      - name: Publish Stable Version (on Merge)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           STABLE_VERSION=$(poetry version --short)
           echo "Releasing stable version: $STABLE_VERSION"
-          poetry version "$STABLE_VERSION"
-          # Rebuild package to update version info if needed
           poetry build
-          pip install twine
-          twine upload --repository-url "https://upload.pypi.pkg.github.com/pyfox13" -u __token__ -p "${{ secrets.GH_TOKEN }}" dist/*
-          # If needed, use:
-          # TWINE_DISABLE_SSL_VERIFICATION=1 twine upload --repository-url "https://upload.pypi.pkg.github.com/pyfox13" -u __token__ -p "${{ secrets.GH_TOKEN }}" dist/*
+          curl -X POST https://api.buildkite.com/v2/packages/organizations/zen-of-code/registries/zenofcode-models/packages \
+               -H "Authorization: Bearer ${{ secrets.BUILDKITE_TOKEN }}" \
+               -F "file=@dist/zenofcode_models-${STABLE_VERSION}.tar.gz"
