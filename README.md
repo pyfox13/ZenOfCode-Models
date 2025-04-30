@@ -1,63 +1,144 @@
-# ZenOfCode Models - README
+# 🧠 ZenOfCode Models
 
-This repository contains shared database models for ZenOfCode, packaged as a Python module. **Alembic migrations are generated in `zenofcode-backend`, not here.**
+This repository contains the **PostgreSQL database models and Alembic migrations** for the ZenOfCode platform.
 
-## 💻 Development Environment
-### Using Poetry for Dependency Management
-- **Local Install:**
-  ```bash
-  poetry install
-  ```
-- **Run Tests:**
-  ```bash
-  poetry run pytest
-  ```
-- **Activate Virtual Environment:**
-  ```bash
-  source $(poetry env info --path)/bin/activate
-  ```
+For now, the `zenofcode-models` are used **directly inside the `zenofcode-backend`**. Migrations are created and applied from this repository using Pipenv and Docker.
 
-## 📂 Repository Structure
+---
+
+## 💻 Development Setup
+
+### 1. Install Python Dependencies
+We use **Pipenv** for dependency management.
+
+```bash
+pipenv install
+```
+
+(Optional) Activate the virtual environment:
+
+```bash
+pipenv shell
+```
+
+### 2. Configure Environment Variables
+Create a `.env` file in the root of this repository with the following content:
+
+```env
+POSTGRES_USER=zenofcode
+POSTGRES_PASSWORD=zenofcode123
+POSTGRES_DB=zenofcode_models
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+```
+
+---
+
+## 🐘 PostgreSQL Setup (via Docker)
+
+We use Docker Compose to manage the PostgreSQL container for local development.
+
+### Common Makefile Commands
+
+| Command | Description |
+|---------|-------------|
+| `make db-up` | Start PostgreSQL container and wait until it's ready |
+| `make db-down` | Stop the container (preserves volume/data) |
+| `make db-restart` | Restart container cleanly |
+| `make db-reset` | 🔥 Remove container and volume (wipes DB data) |
+| `make logs` | View PostgreSQL container logs |
+| `make db-wait` | Wait for DB to be ready (used internally) |
+
+---
+
+## 🔁 Alembic Migrations
+
+We use Alembic to manage database migrations. These are auto-generated from SQLAlchemy models.
+
+### Migration Commands
+
+| Command | Description |
+|---------|-------------|
+| `make new-migration msg="message"` | Autogenerate a new Alembic migration from model changes |
+| `make run-migration` | Apply all unapplied migrations to the database |
+
+> Make sure you’ve added or modified a model before running `new-migration`.
+
+### Example Usage
+
+```bash
+make new-migration msg="add users table"
+make run-migration
+```
+
+Migration files are stored in `alembic/versions/`.
+
+---
+
+## 📂 Project Structure
+
 ```
 zenofcode-models/
-├── models/                    # Database models (e.g., courses.py, users.py)
-├── tests/                     # Unit tests for models
-├── pyproject.toml             # Project dependencies and versioning (Poetry)
-├── Makefile                   # Common commands
-└── README.md
+├── models/                    # SQLAlchemy models
+│   ├── base.py
+│   └── course.py
+├── alembic/                   # Alembic migration logic
+│   ├── versions/              # Migration revision files
+│   └── env.py
+├── alembic.ini                # Alembic DB config
+├── tests/                     # Unit tests (TBD)
+├── Pipfile / Pipfile.lock     # Pipenv-managed dependencies
+├── .env                       # Environment variables for local DB
+└── Makefile                   # Developer commands (DB, Alembic)
 ```
 
-## 🚀 End-to-End Workflow
-### Step 1: Develop Models (`zenofcode-models`)
-- Create or update models and run tests (`make test`).
-- Follow **conventional commits** (`feat:`, `fix:`, `BREAKING CHANGE:`).
-- Create a PR for review. CI/CD publishes a **temporary version** (`x.y.z-pr123`).
+---
 
-### Step 2: Test Models in `zenofcode-backend`
-- Install the temporary version:
-  ```bash
-  pip install zenofcode-models==0.1.0-pr123
-  ```
-- Update backend services and run migrations.
-- Create a PR and test locally.
+## 🧪 Example DB Operations (psql)
 
-### Step 3: Merge and Deploy to QA
-- Merge `zenofcode-models` PR to create a stable version.
-- Update `zenofcode-backend` to use the stable version.
-- Merge `zenofcode-backend` into `develop` to deploy to QA.
+To manually inspect or test your database:
 
+### Enter the DB Console:
+```bash
+docker exec -it zenofcode-postgres psql -U zenofcode -d zenofcode_models
+```
 
-## 📝 Versioning Strategy (`semantic-release`)
-- **PR Builds:** Auto-publish `x.y.z-pr<PR_NUMBER>` without changing `pyproject.toml`.
-- **On Merge to `main`:**
-  - Bump version in `pyproject.toml` using commit messages.
-  - Generate `CHANGELOG.md`.
-  - Publish stable version.
-  - Commit version bump to `main`.
+### View All Tables:
+```sql
+\dt *.*
+```
 
-## 🚀 Commands Overview
-- **Run Tests:** `make test`
-- **Manual Version Bump:** `poetry version [patch|minor|major]`
-- **Local Install:** `poetry install`
+### Insert Sample Data:
+```sql
+INSERT INTO courses (name, description) VALUES ('Python Basics', 'Intro to Python');
+```
 
-This workflow integrates `semantic-release` with `Poetry` for automated versioning and changelog management, ensuring consistency and efficiency in CI/CD. 🚀
+### Query Table:
+```sql
+SELECT * FROM courses;
+```
+
+---
+
+## 🧠 Development Philosophy
+
+| Topic | Approach |
+|-------|----------|
+| Model packaging | ❌ Not packaged yet — directly used in backend |
+| Database schema | ✅ Single schema (`public`) inside one DB |
+| Migrations | ✅ Managed locally via Alembic and Makefile |
+| Multi-service support | ❌ Not yet — future packaging possible |
+
+---
+
+## 🔮 Future Roadmap
+
+- ✅ Tight integration with backend for MVP
+- 🔄 Optional packaging and versioning post-MVP
+- 🚀 Possible multi-schema or multi-DB support for microservices
+- 🔐 Secure DB credential handling in CI/CD
+
+---
+
+## 📄 License
+© ZenOfCode Team (Fox, ZerOo)

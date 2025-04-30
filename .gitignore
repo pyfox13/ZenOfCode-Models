@@ -1,67 +1,112 @@
-# .gitignore for ZenOfCode Models Repository
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
+*.pyo
+*.pyd
 *$py.class
 
-# Pipenv files
+# Virtual environment
+venv/
+.env/
+.envrc
+*.env
+*.venv
 Pipfile.lock
 
-# Virtual environment
-/.venv/
-/.env/
+# Pipenv specific
+Pipfile.lock
 
-# Python egg files
-*.egg
-*.egg-info/
-
-# Build artifacts
-build/
-dist/
-*.whl
-
-# Poetry lock file
+# Poetry specific
 poetry.lock
 
-# Logs and databases
-*.log
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# SQL database
 *.sqlite3
+*.db
 
-# Test coverage
-htmlcov/
-.coverage
-*.cover
+# Logs
+*.log
+logs/
+debug.log
 
-# Pytest cache
-.pytest_cache/
-
-# Jupyter Notebook checkpoints
-.ipynb_checkpoints
-
-# IDE and Editor settings
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# macOS files
-.DS_Store
-
-# Security
-.env
-.env.*
+# Alembic Migrations
+alembic/versions/*.pyc
+alembic/versions/__pycache__/
+alembic.ini
 
 # Docker
-docker-compose.override.yml
 .dockerignore
+docker-compose.override.yml
 
-# CI/CD Artifacts
-*.log
+# IDE files
+.vscode/
+.idea/
+*.iml
+
+# Tests
+.coverage
+.pytest_cache/
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# Build / Distribution
+build/
 dist/
-*.tar.gz
+*.egg-info/
+*.egg
+.eggs/
+MANIFEST
 
-# Ignore compiled migrations
-alembic/versions/*.pyc
+# PyInstaller
+*.spec
 
-This `.gitignore` is optimized for a Python project using `pipenv`, `poetry`, and `pytest`. 🚀
+# MyPy
+.mypy_cache/
+.dmypy.json
+
+# Bandit
+.bandit
+
+# pre-commit
+.pre-commit-config.yaml
+.pre-commit-hooks.yaml
+
+# Security
+secrets.yaml
+*.key
+*.pem
+
+# Python packaging
+*.whl
+*.manifest
+*.lock
+*.log
+
+# Temporary files
+*.swp
+*.bak
+*.tmp
+*.orig
+*.~
+*.save
+
+# AWS credentials (if using boto3 or AWS CLI)
+.aws/
+
+# SSH keys
+id_rsa
+id_rsa.pub
+
+# Sentry DSN or sensitive configs
+sentry-config.json
+
+# JFrog Artifactory
+.artifactory/
+
+# PyCharm
+*.pyc
+*.idea/
