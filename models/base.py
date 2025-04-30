@@ -1,4 +1,7 @@
-from sqlalchemy.ext.declarative import declarative_base
+# models/base.py
+from sqlalchemy.orm import DeclarativeBase
 
-# Declare the base class for all models
-Base = declarative_base()
+
+# Base class for all models
+class Base(DeclarativeBase):
+    pass
