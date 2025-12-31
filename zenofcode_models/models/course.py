@@ -1,10 +1,9 @@
 # models/course.py
+from models.base import Base
 from sqlalchemy import Column, Integer, String
 
-from models.base import Base
 
-
-class Course(Base):
+class CourseBase(Base):
     """
     Course model representing a course entity.
 

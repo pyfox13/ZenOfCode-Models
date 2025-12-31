@@ -1,144 +1,188 @@
-# 🧠 ZenOfCode Models
+# ✨ ZenOfCode Models
 
-This repository contains the **PostgreSQL database models and Alembic migrations** for the ZenOfCode platform.
+`zenofcode-models` is the shared **SQLAlchemy ORM + domain layer** for the ZenOfCode platform.
+It is maintained as a standalone Python package and installed by `zenofcode-backend`.
 
-For now, the `zenofcode-models` are used **directly inside the `zenofcode-backend`**. Migrations are created and applied from this repository using Pipenv and Docker.
+This repo contains:
+
+* SQLAlchemy model definitions
+* (Optional) Pydantic schemas / enums / shared domain logic
+
+All DB runtime concerns live in **`zenofcode-backend`**.
 
 ---
 
-## 💻 Development Setup
+## 🚧 MVP Phase (Current) — Local Package Only
 
-### 1. Install Python Dependencies
-We use **Pipenv** for dependency management.
+During MVP, we are **NOT publishing** this package to any registry.
+
+Why?
+
+* The models are changing rapidly.
+* Publishing every small change would slow development.
+* We want fast local iteration until the schema stabilizes.
+
+The version still exists in `pyproject.toml` because:
+
+* Wheels require a version number
+* We need a basic version to build artifacts and track changes internally
+
+---
+
+---
+
+## 🧑‍💻 Development Setup
+
+This repo uses **Pipenv**:
+
+```bash
+pipenv install --dev
+pipenv shell
+```
+
+---
+
+## 🐳 Docker-Based Tests (Primary)
+
+All tests run **in Docker** to avoid host inconsistencies:
+
+```bash
+make models-build
+make models-test
+```
+
+---
+
+## 🛠️ Local Build + Install Workflow (MVP)
+
+### **Step 1: Build the wheel**
+
+From this repo:
+
+```bash
+python -m build --wheel
+```
+
+### **Step 2: Locate the wheel**
+
+The wheel will appear here:
+
+```
+dist/zenofcode_models-X.Y.Z-py3-none-any.whl
+```
+
+### **Step 3: Install into backend via Pipfile**
+
+Because this is not a monorepo, use an **absolute path**:
+
+**In `zenofcode-backend` Pipfile:**
+
+```toml
+[packages]
+zenofcode-models = {file = "/absolute/path/to/zenofcode_models-X.Y.Z-py3-none-any.whl"}
+```
+
+Then run:
 
 ```bash
 pipenv install
 ```
 
-(Optional) Activate the virtual environment:
+---
+
+## 🚀 Future Phase (Stable + GitHub Packages)
+
+Once the models stabilize and we are ready for release:
+
+* Wheels built automatically in CI
+* Pre-release builds for PRs (e.g., `1.4.0-dev.12`)
+* Pre-release wheels published for testing
+* Stable wheels published to **GitHub Packages**
+* Backend consumes pinned versions, like:
+
+```toml
+zenofcode-models = "==1.4.0"
+```
+
+This will **replace** the manual wheel copy process.
+
+---
+
+## 🧩 Versioning (Semantic Versioning + bumpver)
+
+| Change Type | Meaning                           |
+| ----------- | --------------------------------- |
+| **MAJOR**   | Breaking changes                  |
+| **MINOR**   | Backwards-compatible enhancements |
+| **PATCH**   | Small fixes, docs, refactors      |
+
+### Update the version:
 
 ```bash
-pipenv shell
+bumpver update --major
+bumpver update --minor
+bumpver update --patch
 ```
 
-### 2. Configure Environment Variables
-Create a `.env` file in the root of this repository with the following content:
+> bumpver updates `pyproject.toml` automatically.
 
-```env
-POSTGRES_USER=zenofcode
-POSTGRES_PASSWORD=zenofcode123
-POSTGRES_DB=zenofcode_models
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-```
-
----
-
-## 🐘 PostgreSQL Setup (via Docker)
-
-We use Docker Compose to manage the PostgreSQL container for local development.
-
-### Common Makefile Commands
-
-| Command | Description |
-|---------|-------------|
-| `make db-up` | Start PostgreSQL container and wait until it's ready |
-| `make db-down` | Stop the container (preserves volume/data) |
-| `make db-restart` | Restart container cleanly |
-| `make db-reset` | 🔥 Remove container and volume (wipes DB data) |
-| `make logs` | View PostgreSQL container logs |
-| `make db-wait` | Wait for DB to be ready (used internally) |
-
----
-
-## 🔁 Alembic Migrations
-
-We use Alembic to manage database migrations. These are auto-generated from SQLAlchemy models.
-
-### Migration Commands
-
-| Command | Description |
-|---------|-------------|
-| `make new-migration msg="message"` | Autogenerate a new Alembic migration from model changes |
-| `make run-migration` | Apply all unapplied migrations to the database |
-
-> Make sure you’ve added or modified a model before running `new-migration`.
-
-### Example Usage
-
-```bash
-make new-migration msg="add users table"
-make run-migration
-```
-
-Migration files are stored in `alembic/versions/`.
-
----
-
-## 📂 Project Structure
+## 📁 Project Structure
 
 ```
 zenofcode-models/
-├── models/                    # SQLAlchemy models
-│   ├── base.py
-│   └── course.py
-├── alembic/                   # Alembic migration logic
-│   ├── versions/              # Migration revision files
-│   └── env.py
-├── alembic.ini                # Alembic DB config
-├── tests/                     # Unit tests (TBD)
-├── Pipfile / Pipfile.lock     # Pipenv-managed dependencies
-├── .env                       # Environment variables for local DB
-└── Makefile                   # Developer commands (DB, Alembic)
+├── zenofcode_models/          # Package root
+│   └── models/                # SQLAlchemy models
+│       ├── base.py
+│       └── course.py
+├── tests/                     # Unit tests
+├── pyproject.toml             # Package metadata
+├── Pipfile / Pipfile.lock     # Pipenv dependencies
+├── Dockerfile                 # Test/lint/build runner
+└── Makefile                   # Developer commands
 ```
 
 ---
 
-## 🧪 Example DB Operations (psql)
+## 🔐 Responsibility Separation
 
-To manually inspect or test your database:
+| Concern                             | Owned By                 |
+| ----------------------------------- | ------------------------ |
+| ORM models, domain objects          | `zenofcode-models`       |
+| Database engine/session             | `zenofcode-backend`      |
+| Psycopg2 installation               | `zenofcode-backend` only |
+| Alembic migrations                  | `zenofcode-backend`      |
+| Runtime (FastAPI/Lambda/containers) | `zenofcode-backend`      |
 
-### Enter the DB Console:
-```bash
-docker exec -it zenofcode-postgres psql -U zenofcode -d zenofcode_models
-```
-
-### View All Tables:
-```sql
-\dt *.*
-```
-
-### Insert Sample Data:
-```sql
-INSERT INTO courses (name, description) VALUES ('Python Basics', 'Intro to Python');
-```
-
-### Query Table:
-```sql
-SELECT * FROM courses;
-```
+This prevents environment-specific failures in the models package.
 
 ---
 
-## 🧠 Development Philosophy
+## 🚢 Release Checklist (When We Start Publishing)
 
-| Topic | Approach |
-|-------|----------|
-| Model packaging | ❌ Not packaged yet — directly used in backend |
-| Database schema | ✅ Single schema (`public`) inside one DB |
-| Migrations | ✅ Managed locally via Alembic and Makefile |
-| Multi-service support | ❌ Not yet — future packaging possible |
+### Before publishing:
 
----
+* [ ] Bump version with bumpver
+* [ ] Build a fresh wheel: `python -m build --wheel`
+* [ ] Run tests in Docker: `make models-test`
+* [ ] Tag release (CI may automate this later)
+* [ ] Publish wheel to internal registry
 
-## 🔮 Future Roadmap
+### After publishing:
 
-- ✅ Tight integration with backend for MVP
-- 🔄 Optional packaging and versioning post-MVP
-- 🚀 Possible multi-schema or multi-DB support for microservices
-- 🔐 Secure DB credential handling in CI/CD
+* [ ] Update backend dependency to the new version
+* [ ] Verify backend startup + migrations
 
 ---
 
-## 📄 License
-© ZenOfCode Team (Fox, ZerOo)
+## 🧱 Philosophy
+
+* Models are centralized and reusable across services.
+* Migrations and DB runtime logic stay in the backend.
+* Keep this repo **lightweight, importable, environment-agnostic**.
+* Treat this project like a real internal library:
+
+  * Versioned
+  * Installable
+  * Wheel-distributed
+
+---
