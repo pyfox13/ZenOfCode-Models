@@ -32,7 +32,7 @@ models-build:
 # Run tests
 # ------------------------------------------
 .PHONY: models-test
-models-test:
+models-test:models-build
 	@echo "🧪 Running model tests..."
 	@docker run --rm $(IMAGE_NAME) pytest tests/
 	@echo "✅ Tests complete"

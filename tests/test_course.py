@@ -1,4 +1,4 @@
-from models.course import CourseBase
+from zenofcode_models.models.course import CourseBase
 
 
 def test_course_fields():

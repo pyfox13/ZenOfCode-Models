@@ -1,6 +1,7 @@
 # models/course.py
-from models.base import Base
 from sqlalchemy import Column, Integer, String
+
+from zenofcode_models.models.base import Base
 
 
 class CourseBase(Base):
