@@ -125,7 +125,6 @@ bumpver update --patch
 ```
 
 > bumpver updates `pyproject.toml` automatically.
-
 ## 📁 Project Structure
 
 ```
