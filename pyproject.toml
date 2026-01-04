@@ -30,7 +30,7 @@ where = ["."]
 include = ["zenofcode_models*"]
 
 [tool.pytest.ini_options]
-addopts = "--cov=zenofcode_models --cov-report=term-missing --cov-fail-under=80"
+addopts = "--cov=zenofcode_models --cov-report=term-missing --cov-fail-under=90"
 testpaths = ["tests"]
 
 [tool.bumpver]
