@@ -24,27 +24,26 @@ Why?
 
 The version still exists in `pyproject.toml` because:
 
-* Wheels require a version number
-* We need a basic version to build artifacts and track changes internally
+* Wheels require a version number.
+* We need a basic version to build artifacts and track changes internally.
 
 ---
 
----
+## 🧑‍💻 Development Setup (Single Source of Truth: `pyproject.toml`)
 
-## 🧑‍💻 Development Setup
-
-This repo uses **Pipenv**:
+Create a local environment and install the package in editable mode:
 
 ```bash
-pipenv install --dev
-pipenv shell
+python -m venv .venv
+source .venv/bin/activate
+pip install -e "[dev]"
 ```
 
 ---
 
 ## 🐳 Docker-Based Tests (Primary)
 
-All tests run **in Docker** to avoid host inconsistencies:
+All tests run in Docker to avoid host inconsistencies:
 
 ```bash
 make models-build
@@ -55,7 +54,7 @@ make models-test
 
 ## 🛠️ Local Build + Install Workflow (MVP)
 
-### **Step 1: Build the wheel**
+### Step 1: Build the wheel
 
 From this repo:
 
@@ -63,26 +62,22 @@ From this repo:
 python -m build --wheel
 ```
 
-### **Step 2: Locate the wheel**
+### Step 2: Locate the wheel
 
-The wheel will appear here:
-
-```
+```text
 dist/zenofcode_models-X.Y.Z-py3-none-any.whl
 ```
 
-### **Step 3: Install into backend via Pipfile**
+### Step 3: Install into backend via Pipfile
 
-Because this is not a monorepo, use an **absolute path**:
-
-**In `zenofcode-backend` Pipfile:**
+Because this is not a monorepo, use an absolute path in the backend `Pipfile`:
 
 ```toml
 [packages]
 zenofcode-models = {file = "/absolute/path/to/zenofcode_models-X.Y.Z-py3-none-any.whl"}
 ```
 
-Then run:
+Then run in the backend:
 
 ```bash
 pipenv install
@@ -97,14 +92,15 @@ Once the models stabilize and we are ready for release:
 * Wheels built automatically in CI
 * Pre-release builds for PRs (e.g., `1.4.0-dev.12`)
 * Pre-release wheels published for testing
-* Stable wheels published to **GitHub Packages**
-* Backend consumes pinned versions, like:
+* Stable wheels published to GitHub Packages
+
+Backend consumes pinned versions, like:
 
 ```toml
 zenofcode-models = "==1.4.0"
 ```
 
-This will **replace** the manual wheel copy process.
+This will replace the manual wheel copy process.
 
 ---
 
@@ -112,11 +108,11 @@ This will **replace** the manual wheel copy process.
 
 | Change Type | Meaning                           |
 | ----------- | --------------------------------- |
-| **MAJOR**   | Breaking changes                  |
-| **MINOR**   | Backwards-compatible enhancements |
-| **PATCH**   | Small fixes, docs, refactors      |
+| MAJOR       | Breaking changes                  |
+| MINOR       | Backwards-compatible enhancements |
+| PATCH       | Small fixes, docs, refactors      |
 
-### Update the version:
+Update the version:
 
 ```bash
 bumpver update --major
@@ -124,10 +120,13 @@ bumpver update --minor
 bumpver update --patch
 ```
 
-> bumpver updates `pyproject.toml` automatically.
+`bumpver` updates `pyproject.toml` automatically.
+
+---
+
 ## 📁 Project Structure
 
-```
+```text
 zenofcode-models/
 ├── zenofcode_models/          # Package root
 │   └── models/                # SQLAlchemy models
@@ -135,22 +134,21 @@ zenofcode-models/
 │       └── course.py
 ├── tests/                     # Unit tests
 ├── pyproject.toml             # Package metadata
-├── Pipfile / Pipfile.lock     # Pipenv dependencies
 ├── Dockerfile                 # Test/lint/build runner
-└── Makefile                   # Developer commands
+└── makefile                   # Developer commands
 ```
 
 ---
 
 ## 🔐 Responsibility Separation
 
-| Concern                             | Owned By                 |
-| ----------------------------------- | ------------------------ |
-| ORM models, domain objects          | `zenofcode-models`       |
-| Database engine/session             | `zenofcode-backend`      |
-| Psycopg2 installation               | `zenofcode-backend` only |
-| Alembic migrations                  | `zenofcode-backend`      |
-| Runtime (FastAPI/Lambda/containers) | `zenofcode-backend`      |
+| Concern                                 | Owned By               |
+| --------------------------------------- | ---------------------- |
+| ORM models, domain objects              | zenofcode-models       |
+| Database engine/session                 | zenofcode-backend      |
+| Psycopg2 installation                   | zenofcode-backend only |
+| Alembic migrations                      | zenofcode-backend      |
+| Runtime (FastAPI / Lambda / containers) | zenofcode-backend      |
 
 This prevents environment-specific failures in the models package.
 
@@ -158,18 +156,18 @@ This prevents environment-specific failures in the models package.
 
 ## 🚢 Release Checklist (When We Start Publishing)
 
-### Before publishing:
+Before publishing:
 
-* [ ] Bump version with bumpver
-* [ ] Build a fresh wheel: `python -m build --wheel`
-* [ ] Run tests in Docker: `make models-test`
-* [ ] Tag release (CI may automate this later)
-* [ ] Publish wheel to internal registry
+* Bump version with `bumpver`
+* Build a fresh wheel: `python -m build --wheel`
+* Run tests in Docker: `make models-test`
+* Tag release (CI may automate this later)
+* Publish wheel to internal registry
 
-### After publishing:
+After publishing:
 
-* [ ] Update backend dependency to the new version
-* [ ] Verify backend startup + migrations
+* Update backend dependency to the new version
+* Verify backend startup + migrations
 
 ---
 
@@ -177,11 +175,5 @@ This prevents environment-specific failures in the models package.
 
 * Models are centralized and reusable across services.
 * Migrations and DB runtime logic stay in the backend.
-* Keep this repo **lightweight, importable, environment-agnostic**.
-* Treat this project like a real internal library:
-
-  * Versioned
-  * Installable
-  * Wheel-distributed
-
----
+* Keep this repo lightweight, importable, environment-agnostic.
+* Treat this project like a real internal library: versioned, installable, wheel-distributed.

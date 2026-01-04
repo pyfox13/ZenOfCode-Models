@@ -1,29 +1,15 @@
-name: CI - ZenOfCode Models
+- name: 🐍 Set up Python 3.10
+  uses: actions/setup-python@v4
+  with:
+    python-version: "3.10"
 
-on:
-  pull_request:
-    branches: [main]
-  push:
-    branches: [main]
+- name: 📦 Create venv + install deps
+  run: |
+    python -m venv .venv
+    . .venv/bin/activate
+    pip install -e ".[dev]"
 
-jobs:
-  test:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: 📥 Checkout repository
-        uses: actions/checkout@v2
-
-      - name: 🐍 Set up Python 3.10
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      - name: 💾 Install Pipenv
-        run: pip install pipenv
-
-      - name: 📦 Install dependencies (Pipenv)
-        run: pipenv install --dev
-
-      - name: 🧪 Run tests
-        run: pipenv run pytest
+- name: 🧪 Run tests with coverage
+  run: |
+    . .venv/bin/activate
+    pytest --cov=zenofcode_models tests/
