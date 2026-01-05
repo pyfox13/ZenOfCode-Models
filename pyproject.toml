@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zenofcode-models"
+version = "0.1.0"
+description = "Shared SQLAlchemy ORM models for the ZenOfCode platform"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+  { name = "Avishkar Tamang" },
+  { name = "Indap Pun Magar" },
+]
+dependencies = [
+  "SQLAlchemy>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest",
+  "pytest-cov",
+  "pre-commit",
+  "build",
+  "bumpver",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["zenofcode_models*"]
+
+[tool.pytest.ini_options]
+addopts = "--cov=zenofcode_models --cov-report=term-missing --cov-fail-under=90"
+testpaths = ["tests"]
+
+[tool.bumpver]
+current_version = "0.1.0"
+version_pattern = "MAJOR.MINOR.PATCH"
+commit_message = "chore: bump version {old_version} -> {new_version}"
+tag_message = "v{new_version}"
+commit = false
+tag = false
+push = false
+
+[tool.bumpver.file_patterns]
+"pyproject.toml" = [
+  'current_version = "{version}"',
+  'version = "{version}"',
+]

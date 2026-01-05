@@ -1,65 +1,54 @@
 # ==========================================
-# 🧱 Makefile for ZenOfCode-Models
-# Manages local PostgreSQL & Alembic Migrations
+# 🧱 Makefile for ZenOfCode – Models
+# Docker-based test runner for model layer
 # ==========================================
 
-include .env
-export
 SHELL := /bin/bash
 
-.PHONY: help db-up db-down db-restart db-wait logs run-migration db-reset new-migration
+# Docker image name (scoped + explicit)
+IMAGE_NAME=zenofcode/models-test
 
+# ------------------------------------------
+# Help
+# ------------------------------------------
+.PHONY: help
 help:
 	@echo "Available commands:"
-	@echo "  db-up         - Start PostgreSQL container"
-	@echo "  db-down       - Stop and remove the container"
-	@echo "  db-restart    - Restart PostgreSQL container"
-	@echo "  db-wait       - Wait until DB is ready to accept connections"
-	@echo "  logs          - Tail logs from the DB container"
+	@echo "  models-build   - Build the models Docker test image"
+	@echo "  models-test    - Run model tests inside Docker"
+	@echo "  models-shell   - Open a shell inside the models test container"
+	@echo "  models-clean   - Remove the Docker image"
 
-db-up:
-	@echo "🚀 Starting PostgreSQL container..."
-	@docker compose up -d
-	@$(MAKE) db-wait
-	@echo "✅ PostgreSQL started!"
+# ------------------------------------------
+# Build image (test stage)
+# ------------------------------------------
+.PHONY: models-build
+models-build:
+	@echo "🚀 Building models test container..."
+	@docker build --target test -t $(IMAGE_NAME) .
+	@echo "✅ Models test image built"
 
-db-down:
-	@echo "🛑 Stopping PostgreSQL container..."
-	@docker compose down
+# ------------------------------------------
+# Run tests
+# ------------------------------------------
+.PHONY: models-test
+models-test: models-build
+	@echo "🧪 Running model tests..."
+	@docker run --rm $(IMAGE_NAME)
+	@echo "✅ Tests complete"
 
-db-restart: db-down db-up
+# ------------------------------------------
+# Interactive shell
+# ------------------------------------------
+.PHONY: models-shell
+models-shell: models-build
+	@echo "🐚 Launching shell in models container..."
+	@docker run -it --rm $(IMAGE_NAME) /bin/sh
 
-db-wait:
-	@echo "⏳ Waiting for PostgreSQL to become available..."
-	@until docker exec zenofcode-postgres pg_isready -U $(POSTGRES_DB) > /dev/null 2>&1; do \
-		echo "🔄 Still waiting..."; \
-		sleep 2; \
-	done
-	@echo "✅ PostgreSQL is ready."
-
-logs:
-	@docker compose logs -f postgres
-
-run-migration:
-	@echo "🔄 Running Alembic migrations..."
-	alembic upgrade head
-	@echo "✅ Migrations completed!"
-
-db-reset:
-	@echo "⚠️  This will delete all PostgreSQL data and remove volumes!"
-	@read -p "Are you sure? This cannot be undone (y/N): " confirm && \
-	if [ "$$confirm" = "y" ]; then \
-		docker compose down -v && \
-		echo " DB volume removed. Ready for a clean start."; \
-	else \
-		echo " Reset cancelled."; \
-	fi
-
-new-migration:
-	@if [ -z "$(msg)" ]; then \
-		echo "❌ ERROR: Please provide a message. Usage: make new-migration msg='add courses table'"; \
-		exit 1; \
-	fi
-	@echo "📝 Creating new Alembic migration: $(msg)"
-	@pipenv run alembic revision --autogenerate -m "$(msg)"
-	@echo "✅ Migration file created in alembic/versions/"
+# ------------------------------------------
+# Cleanup
+# ------------------------------------------
+.PHONY: models-clean
+models-clean:
+	@echo "🧹 Removing models image (if exists)..."
+	@docker rmi $(IMAGE_NAME) || true
